@@ -98,7 +98,74 @@ func score(R, C, A, K, M, F float64) float64 {
 	}
 	return (K+M*math.Log(C)/(C))*R + (F-A)*(K+M*math.Log(F)/F)
 }
+func genChartV2(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
+	// rs： n region
+	Rs := make([]float64, len(Cs))
+	var xAxis [101]int
+	sizeData := make([][]opts.LineData, len(Cs))
+	availableData := make([][]opts.LineData, len(Cs))
+	percentData := make([][]opts.LineData, len(Cs))
+	scoreData := make([][]opts.LineData, len(Cs))
+	for j := 0; j < len(Rs); j++ {
+		for i := 0; i <= 100; i++ {
+			xAxis[i] = i
+			Rs[j] = Cs[j] * float64(100-i) / 100
+			sizeData[j] = append(sizeData[j], opts.LineData{Value: Rs[j]})
+			A := Cs[j] - Ds[j] - Rs[j]*Amps[j]
+			if A > 0 {
+				availableData[j] = append(availableData[j], opts.LineData{Value: A})
+			}
+			percentData[j] = append(percentData[j], opts.LineData{Value: (Rs[j]*Amps[j] + Ds[j]) / Cs[j]})
+			scoreData[j] = append(scoreData[j], opts.LineData{Value: score(Rs[j], Cs[j], A, K, M, F)})
+		}
+	}
 
+	size := charts.NewLine()
+	size.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title: "Size",
+		}),
+	)
+	size.SetXAxis(xAxis)
+	for i := range sizeData {
+		size.AddSeries(fmt.Sprintf("s%.0f", Cs[i]), sizeData[i])
+	}
+
+	available := charts.NewLine()
+	available.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title: "Available",
+		}),
+	)
+	available.SetXAxis(xAxis)
+	for i := range availableData {
+		available.AddSeries(fmt.Sprintf("s%.0f", Cs[i]), availableData[i])
+	}
+
+	percent := charts.NewLine()
+	percent.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title: "Percent",
+		}),
+	)
+	percent.SetXAxis(xAxis)
+	for i := range percentData {
+		percent.AddSeries(fmt.Sprintf("s%.0f", Cs[i]), percentData[i])
+	}
+
+	score := charts.NewLine()
+	score.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title: "Score",
+		}),
+	)
+	score.SetXAxis(xAxis)
+	for i := range scoreData {
+		score.AddSeries(fmt.Sprintf("s%.0f", Cs[i]), scoreData[i])
+	}
+
+	return []render.Renderer{size, available, percent, score}
+}
 func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 	Rs := make([]float64, len(Cs))
 	var xAxis []string
