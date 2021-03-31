@@ -101,7 +101,7 @@ func score(R, C, A, K, M, F float64) float64 {
 
 func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 	Rs := make([]float64, len(Cs))
-	var xAxis []string
+	var xAxis []float64
 	sizeData := make([][]opts.LineData, len(Cs))
 	availableData := make([][]opts.LineData, len(Cs))
 	percentData := make([][]opts.LineData, len(Cs))
@@ -128,7 +128,7 @@ func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 
 		Rs[minIndex[rand.Intn(len(minIndex))]] += 0.1
 		if i%50 == 0 {
-			xAxis = append(xAxis, "")
+			xAxis = append(xAxis, Rs[0])
 			for j := range Rs {
 				sizeData[j] = append(sizeData[j], opts.LineData{Value: Rs[j]})
 				A := Cs[j] - Ds[j] - Rs[j]*Amps[j]
@@ -141,15 +141,39 @@ func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 		}
 	}
 
+	legends := make([]string, len(Cs))
+	for i := range Cs {
+		legends[i] = fmt.Sprintf("s-%d", i)
+	}
 	size := charts.NewLine()
 	size.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title: "Size",
 		}),
+		charts.WithLegendOpts(opts.Legend{
+			Data: legends,
+			Show: true,
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Show:    true,
+			Trigger: "axis",
+		}),
+		charts.WithToolboxOpts(opts.Toolbox{
+			Show:  true,
+			Right: "20%",
+			Feature: &opts.ToolBoxFeature{
+				SaveAsImage: &opts.ToolBoxFeatureSaveAsImage{
+					Show: true,
+				},
+				DataZoom: &opts.ToolBoxFeatureDataZoom{
+					Show: true,
+				},
+			},
+		}),
 	)
 	size.SetXAxis(xAxis)
 	for i := range sizeData {
-		size.AddSeries(fmt.Sprintf("s%.0f", Cs[i]), sizeData[i])
+		size.AddSeries(fmt.Sprintf("s-%d", i), sizeData[i])
 	}
 
 	available := charts.NewLine()
@@ -157,10 +181,14 @@ func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 		charts.WithTitleOpts(opts.Title{
 			Title: "Available",
 		}),
+		charts.WithLegendOpts(opts.Legend{
+			Data: legends,
+			Show: true,
+		}),
 	)
 	available.SetXAxis(xAxis)
 	for i := range availableData {
-		available.AddSeries(fmt.Sprintf("s%.0f", Cs[i]), availableData[i])
+		available.AddSeries(fmt.Sprintf("s-%d", i), availableData[i])
 	}
 
 	percent := charts.NewLine()
@@ -168,10 +196,14 @@ func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 		charts.WithTitleOpts(opts.Title{
 			Title: "Percent",
 		}),
+		charts.WithLegendOpts(opts.Legend{
+			Data: legends,
+			Show: true,
+		}),
 	)
 	percent.SetXAxis(xAxis)
 	for i := range percentData {
-		percent.AddSeries(fmt.Sprintf("s%.0f", Cs[i]), percentData[i])
+		percent.AddSeries(fmt.Sprintf("s-%d", i), percentData[i])
 	}
 
 	score := charts.NewLine()
@@ -179,10 +211,27 @@ func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 		charts.WithTitleOpts(opts.Title{
 			Title: "Score",
 		}),
+		charts.WithLegendOpts(opts.Legend{
+			Data: legends,
+			Show: true,
+		}),
+		charts.WithToolboxOpts(opts.Toolbox{
+			Show:  true,
+			Right: "20%",
+			Feature: &opts.ToolBoxFeature{
+				SaveAsImage: &opts.ToolBoxFeatureSaveAsImage{
+					Show: true,
+				},
+				DataZoom: &opts.ToolBoxFeatureDataZoom{
+					Show: true,
+				},
+			},
+		}),
 	)
 	score.SetXAxis(xAxis)
+
 	for i := range scoreData {
-		score.AddSeries(fmt.Sprintf("s%.0f", Cs[i]), scoreData[i])
+		score.AddSeries(fmt.Sprintf("s-%d", i), scoreData[i])
 	}
 
 	return []render.Renderer{size, available, percent, score}
