@@ -54,6 +54,7 @@ func main() {
 		if fStr := r.Form.Get("f"); fStr != "" {
 			f, _ = strconv.ParseFloat(fStr, 16)
 		}
+		//charts := genChart(stores, amps, deadSpaces, k, m, f)
 		charts := genChart(stores, amps, deadSpaces, k, m, f)
 		myRender(w, charts)
 	})
@@ -141,11 +142,18 @@ func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 		}
 	}
 
-	legends := make([]string, len(Cs))
+	legends := make([]string, len(Cs)*3)
 	for i := range Cs {
-		legends[i] = fmt.Sprintf("s-%d", i)
+		legends[i] = fmt.Sprintf("size-%d", i)
+		legends[i+len(Cs)] = fmt.Sprintf("avail-%d", i)
+		legends[i+len(Cs)*2] = fmt.Sprintf("score-%d", i)
 	}
 	size := charts.NewLine()
+	size.XYAxis.ExtendYAxis(opts.YAxis{
+		Name: "score",
+		Type: "value",
+		Show: true,
+	})
 	size.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
 			Title: "Size",
@@ -173,24 +181,18 @@ func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 	)
 	size.SetXAxis(xAxis)
 	for i := range sizeData {
-		size.AddSeries(fmt.Sprintf("s-%d", i), sizeData[i])
+		size.AddSeries(fmt.Sprintf("size-%d", i), sizeData[i])
 	}
-
-	available := charts.NewLine()
-	available.SetGlobalOptions(
-		charts.WithTitleOpts(opts.Title{
-			Title: "Available",
-		}),
-		charts.WithLegendOpts(opts.Legend{
-			Data: legends,
-			Show: true,
-		}),
-	)
-	available.SetXAxis(xAxis)
 	for i := range availableData {
-		available.AddSeries(fmt.Sprintf("s-%d", i), availableData[i])
+		size.AddSeries(fmt.Sprintf("avail-%d", i), availableData[i])
 	}
-
+	for i := range scoreData {
+		size.AddSeries(fmt.Sprintf("score-%d", i), scoreData[i], charts.WithLineChartOpts(
+			opts.LineChart{
+				YAxisIndex: 1,
+			},
+		))
+	}
 	percent := charts.NewLine()
 	percent.SetGlobalOptions(
 		charts.WithTitleOpts(opts.Title{
@@ -234,5 +236,64 @@ func genChart(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
 		score.AddSeries(fmt.Sprintf("s-%d", i), scoreData[i])
 	}
 
-	return []render.Renderer{size, available, percent, score}
+	return []render.Renderer{size, score, percent}
+}
+func genChartV2(Cs, Amps, Ds []float64, K, M, F float64) []render.Renderer {
+
+	size := charts.NewLine()
+
+	size.SetGlobalOptions(
+		charts.WithTitleOpts(opts.Title{
+			Title: "Size",
+		}),
+		charts.WithTooltipOpts(opts.Tooltip{
+			Show:    true,
+			Trigger: "axis",
+		}),
+		charts.WithToolboxOpts(opts.Toolbox{
+			Show:  true,
+			Right: "20%",
+			Feature: &opts.ToolBoxFeature{
+				SaveAsImage: &opts.ToolBoxFeatureSaveAsImage{
+					Show: true,
+				},
+				DataZoom: &opts.ToolBoxFeatureDataZoom{
+					Show: true,
+				},
+			},
+		}),
+		charts.WithYAxisOpts(opts.YAxis{
+			Name: "cap",
+			Type: "value",
+			Show: true,
+		}, 0),
+		//charts.WithYAxisOpts(opts.YAxis{
+		//	Name:      "score",
+		//	Type:      "value",
+		//	Show:      true,
+		//	GridIndex: 1,
+		//}, 1),
+	)
+	size.XYAxis.ExtendYAxis(opts.YAxis{
+		Name: "score",
+		Type: "value",
+		Show: true,
+	})
+	y := make([]opts.LineData, 0)
+	y1 := make([]opts.LineData, 0)
+	var xAxis [10]int
+	for i := 0; i < 10; i++ {
+		xAxis[i] = i
+		y = append(y, opts.LineData{Value: i})
+		y1 = append(y1, opts.LineData{Value: i * 2})
+	}
+	size.SetXAxis(xAxis)
+
+	size.AddSeries("y", y)
+	size.AddSeries("y1", y1, charts.WithLineChartOpts(
+		opts.LineChart{
+			YAxisIndex: 1,
+		},
+	))
+	return []render.Renderer{size}
 }
